@@ -79,6 +79,14 @@ Token *new_token(TokenKind kind, Token *cur, char *str) {
   return tok;
 }
 
+// Returns true if c is valid as the first character of an identifier.
+static bool is_ident1(char c) {
+  return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
+}
+
+// Returns true is c is valid as a non-first character of an identifier.
+static bool is_ident2(char c) { return is_ident1(c) || ('0' <= c && c <= '9'); }
+
 // 入力文字列pをトークナイズしてそれを返す
 Token *tokenize() {
   char *p = user_input;
@@ -93,6 +101,21 @@ Token *tokenize() {
       continue;
     }
 
+    if (is_ident1(*p)) {
+      char *start = p;
+      do {
+        p++;
+      } while (is_ident2(*p));
+      cur = new_token(TK_INDET, cur, start);
+      continue;
+    }
+
+    if ('a' <= *p && *p <= 'z') {
+      cur = new_token(TK_INDET, cur, p++);
+      cur->len = 1;
+      continue;
+    }
+
     // 2文字の記号を処理
     if (strncmp(p, "==", 2) == 0 || strncmp(p, "!=", 2) == 0 ||
         strncmp(p, "<=", 2) == 0 || strncmp(p, ">=", 2) == 0) {
@@ -104,12 +127,6 @@ Token *tokenize() {
 
     if (strchr("+-*/()<>;=", *p)) {
       cur = new_token(TK_RESERVED, cur, p++);
-      cur->len = 1;
-      continue;
-    }
-
-    if ('a' <= *p && *p <= 'z') {
-      cur = new_token(TK_INDET, cur, p++);
       cur->len = 1;
       continue;
     }
