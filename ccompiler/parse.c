@@ -49,6 +49,16 @@ Token *consume_ident() {
   return tok;
 }
 
+// 次のトークンがreturnの場合、トークンを1つ読み進めてそのトークンを返す。
+Token *consume_return() {
+  if (token->kind != TK_RETURN)
+    return NULL;
+
+  Token *tok = token;
+  token = token->next;
+  return tok;
+}
+
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する
 void expect(char *op) {
@@ -98,6 +108,13 @@ Token *tokenize() {
     // 空白文字をスキップ
     if (isspace(*p)) {
       p++;
+      continue;
+    }
+
+    if (strncmp(p, "return", 6) == 0 && !is_ident2(p[6])) {
+      cur = new_token(TK_RETURN, cur, p);
+      cur->len = 6;
+      p += 6;
       continue;
     }
 
@@ -169,9 +186,20 @@ void program() {
 }
 
 // stmt = expr ";"
+//     | "return" expr ";"
 Node *stmt() {
-  Node *node = expr();
-  expect(";");
+  Node *node;
+
+  if (consume_return()) {
+    node = calloc(1, sizeof(Node));
+    node->kind = ND_RETURN;
+    node->lhs = expr();
+  } else {
+    node = expr();
+  }
+
+  if (!consume(";"))
+    error_at(token->str, "';'ではありません");
   return node;
 }
 
